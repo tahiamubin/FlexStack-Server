@@ -3,11 +3,11 @@ dotenv.config();
 const express = require("express");
 //const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = process.env.MONGODB_URI;
 
 const app = express();
-app.use(express.json())
+app.use(express.json());
 const port = process.env.PORT;
 const client = new MongoClient(uri, {
   serverApi: {
@@ -56,19 +56,28 @@ async function run() {
     const database = client.db("assignment10");
     const communityCollection = database.collection("community");
 
-    
-
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
-   
+
     // community forum
-    
-    app.get ("/api/community-forum" , async(req, res) => {
-      const result = await communityCollection.find().toArray()
-      return res.json(result)
-    })
+
+    app.get("/api/community-forum/:id", async (req, res) => {
+      // details page
+      const id = req.params.id;
+      const query = {
+        _id: new ObjectId(id),
+      };
+      const result = await communityCollection.findOne(query);
+      res.json(result);
+    });
+
+    app.get("/api/community-forum", async (req, res) => {
+      // community page
+      const result = await communityCollection.find().toArray();
+      return res.json(result);
+    });
 
     app.post("/api/community-forum", async (req, res) => {
       try {
