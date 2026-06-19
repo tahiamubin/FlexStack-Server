@@ -64,26 +64,25 @@ async function run() {
 
     // all class
 
-    app.patch('/api/all-class/:id' , async(req, res) => {
-      const {id} =  req.params
-      const updatedData = req.body
+    app.patch("/api/all-class/:id", async (req, res) => {
+      const { id } = req.params;
+      const updatedData = req.body;
       const result = await allClassCollection.updateOne(
-       { _id: new ObjectId(id)},
-       {$set: updatedData } 
+        { _id: new ObjectId(id) },
+        { $set: updatedData },
+      );
+      res.json(result);
+    });
 
-      )
-      res.json()
-    })
-    
-     app.delete ("/api/all-class/:id" , async(req, res) => {
-      const {id} = req.params
-       console.log("Received id:", id) 
+    app.delete("/api/all-class/:id", async (req, res) => {
+      const { id } = req.params;
+      console.log("Received id:", id);
       const result = await allClassCollection.deleteOne({
-        _id: new ObjectId(id)
-      })
-      console.log("Delete result:", result)
-      res.json(result)
-    })
+        _id: new ObjectId(id),
+      });
+      console.log("Delete result:", result);
+      res.json(result);
+    });
     app.get("/api/all-class", async (req, res) => {
       const result = await allClassCollection.find().toArray();
       return res.json(result);
@@ -99,17 +98,17 @@ async function run() {
       }
     });
 
-    
     // community forum
-    app.delete ("/api/community-forum/:id" , async(req, res) => {
-      const {id} = req.params
-       console.log("Received id:", id) 
+
+    app.delete("/api/community-forum/:id", async (req, res) => {
+      const { id } = req.params;
+      console.log("Received id:", id);
       const result = await communityCollection.deleteOne({
-        _id: new ObjectId(id)
-      })
-      console.log("Delete result:", result)
-      res.json(result)
-    })
+        _id: new ObjectId(id),
+      });
+      console.log("Delete result:", result);
+      res.json(result);
+    });
 
     // Add comment
     app.post("/api/community-forum/:id/comment", async (req, res) => {
@@ -130,6 +129,16 @@ async function run() {
       };
       const result = await communityCollection.findOne(query);
       res.json(result);
+    });
+    
+    app.get("/api/community-forum", async (req, res) => {
+      // latest post
+      const result = await communityCollection
+        .find()
+        .sort({ createdAt: -1 })
+        .limit(3)
+        .toArray();
+      return res.json(result);
     });
 
     app.get("/api/community-forum", async (req, res) => {
