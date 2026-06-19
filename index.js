@@ -55,13 +55,72 @@ async function run() {
     await client.connect();
     const database = client.db("assignment10");
     const communityCollection = database.collection("community");
+    const allClassCollection = database.collection("allClass");
 
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
 
+    // all class
+
+    app.patch('/api/all-class/:id' , async(req, res) => {
+      const {id} =  req.params
+      const updatedData = req.body
+      const result = await allClassCollection.updateOne(
+       { _id: new ObjectId(id)},
+       {$set: updatedData } 
+
+      )
+      res.json()
+    })
+    
+     app.delete ("/api/all-class/:id" , async(req, res) => {
+      const {id} = req.params
+       console.log("Received id:", id) 
+      const result = await allClassCollection.deleteOne({
+        _id: new ObjectId(id)
+      })
+      console.log("Delete result:", result)
+      res.json(result)
+    })
+    app.get("/api/all-class", async (req, res) => {
+      const result = await allClassCollection.find().toArray();
+      return res.json(result);
+    });
+
+    app.post("/api/all-class", async (req, res) => {
+      try {
+        const data = req.body;
+        const result = await allClassCollection.insertOne(data);
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ error: error.message }); // fixed: error, not err
+      }
+    });
+
+    
     // community forum
+    app.delete ("/api/community-forum/:id" , async(req, res) => {
+      const {id} = req.params
+       console.log("Received id:", id) 
+      const result = await communityCollection.deleteOne({
+        _id: new ObjectId(id)
+      })
+      console.log("Delete result:", result)
+      res.json(result)
+    })
+
+    // Add comment
+    app.post("/api/community-forum/:id/comment", async (req, res) => {
+      const { id } = req.params;
+      const comment = { ...req.body, createdAt: new Date() };
+      await communityCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $push: { comments: comment } },
+      );
+      res.json({ success: true });
+    });
 
     app.get("/api/community-forum/:id", async (req, res) => {
       // details page
