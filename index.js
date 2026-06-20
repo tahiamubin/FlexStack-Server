@@ -56,11 +56,33 @@ async function run() {
     const database = client.db("assignment10");
     const communityCollection = database.collection("community");
     const allClassCollection = database.collection("allClass");
+    const applyTrainerCollection = database.collection("applyTrainer");
+    const favoriteCollection = database.collection("memberFavorite");
 
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
+
+    // member page
+
+    app.get("/api/favorite", async (req, res) => {
+      const {memberId} = req.query
+      const result = await favoriteCollection.find({memberId: memberId}).toArray();
+      res.json(result);
+    });
+
+    app.post("/api/favorite", async (req, res) => {
+      const data = req.body;
+      const result = await favoriteCollection.insertOne(data);
+      res.json(result);
+    });
+
+    app.post("/api/apply-trainer", async (req, res) => {
+      const data = req.body;
+      const result = await applyTrainerCollection.insertOne(data);
+      res.json(result);
+    });
 
     // all class
 
@@ -130,7 +152,7 @@ async function run() {
       const result = await communityCollection.findOne(query);
       res.json(result);
     });
-    
+
     app.get("/api/community-forum", async (req, res) => {
       // latest post
       const result = await communityCollection
