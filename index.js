@@ -58,20 +58,48 @@ async function run() {
     const allClassCollection = database.collection("allClass");
     const applyTrainerCollection = database.collection("applyTrainer");
     const favoriteCollection = database.collection("memberFavorite");
+    const paymentCollection = database.collection("subscription")
+    const userCollection = database.collection('user')
 
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
 
+    app.post("/api/payment" , async(req, res) => {
+      const {sessionId, userId, className, schedule, userEmail} = req.body
+      const isExits = await paymentCollection.findOne({sessionId})
+      if(isExits){
+        return res.json({msg: 'Already exits!'})
+      }
+
+      await paymentCollection.insertOne({
+        sessionId,
+        userId,
+        className,
+        schedule,
+        userEmail,
+        
+      })
+      await userCollection.updateOne(
+    { _id: new ObjectId(userId) },
+    { $set: { plan: 'pro' } }
+  )
+      res.json({msg: "Payment successful!"})
+    })
+
+
+    //subscription
+
     // member page
 
-    app.get("/api/favorite", async (req, res) => {
-      const {memberId} = req.query
-      const result = await favoriteCollection.find({memberId: memberId}).toArray();
-      res.json(result);
-    });
-
+    // app.get("/api/favorite", async (req, res) => {
+    //   const { memberId } = req.query;
+    //   const result = await favoriteCollection
+    //     .find({ MemberId: memberId })
+    //     .toArray();
+    //   res.json(result);
+    // });
     app.post("/api/favorite", async (req, res) => {
       const data = req.body;
       const result = await favoriteCollection.insertOne(data);
@@ -85,6 +113,15 @@ async function run() {
     });
 
     // all class
+    app.get("/api/all-classes/:id", async (req, res) => {
+      // book now 
+      const id = req.params.id;
+      const query = {
+        _id: new ObjectId(id),
+      };
+      const result = await allClassCollection.findOne(query);
+      res.json(result);
+    });
 
     app.patch("/api/all-class/:id", async (req, res) => {
       const { id } = req.params;
@@ -105,6 +142,7 @@ async function run() {
       console.log("Delete result:", result);
       res.json(result);
     });
+
     app.get("/api/all-class", async (req, res) => {
       const result = await allClassCollection.find().toArray();
       return res.json(result);
@@ -124,7 +162,7 @@ async function run() {
 
     app.delete("/api/community-forum/:id", async (req, res) => {
       const { id } = req.params;
-      console.log("Received id:", id);
+      //console.log("Received id:", id);
       const result = await communityCollection.deleteOne({
         _id: new ObjectId(id),
       });
