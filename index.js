@@ -58,19 +58,29 @@ async function run() {
     const allClassCollection = database.collection("allClass");
     const applyTrainerCollection = database.collection("applyTrainer");
     const favoriteCollection = database.collection("memberFavorite");
-    const paymentCollection = database.collection("subscription")
-    const userCollection = database.collection('user')
+    const paymentCollection = database.collection("subscription");
+    const userCollection = database.collection("user");
 
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
 
-    app.post("/api/payment" , async(req, res) => {
-      const {sessionId, userId, className, schedule, userEmail} = req.body
-      const isExits = await paymentCollection.findOne({sessionId})
-      if(isExits){
-        return res.json({msg: 'Already exits!'})
+    // member payment
+
+    app.get("/api/payment/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { userId: id };
+      const result = await paymentCollection.find(query).toArray();
+      res.json(result);
+    });
+
+    app.post("/api/payment", async (req, res) => {
+      const { sessionId, userId, className, classId, schedule, userEmail } =
+        req.body;
+      const isExits = await paymentCollection.findOne({ sessionId });
+      if (isExits) {
+        return res.json({ msg: "Already exits!" });
       }
 
       await paymentCollection.insertOne({
@@ -79,33 +89,32 @@ async function run() {
         className,
         schedule,
         userEmail,
-        
-      })
+        classId,
+      });
       await userCollection.updateOne(
-    { _id: new ObjectId(userId) },
-    { $set: { plan: 'pro' } }
-  )
-      res.json({msg: "Payment successful!"})
-    })
-
-
-    //subscription
+        { _id: new ObjectId(userId) },
+        { $set: { plan: "pro" } },
+      );
+      res.json({ msg: "Payment successful!" });
+    });
 
     // member page
 
-    // app.get("/api/favorite", async (req, res) => {
-    //   const { memberId } = req.query;
-    //   const result = await favoriteCollection
-    //     .find({ MemberId: memberId })
-    //     .toArray();
-    //   res.json(result);
-    // });
-    app.post("/api/favorite", async (req, res) => {
-      const data = req.body;
-      const result = await favoriteCollection.insertOne(data);
+   app.get("/api/favorite", async (req, res) => {
+      const {memberId} = req.query
+      const result = await favoriteCollection.find({memberId: memberId}).toArray();
       res.json(result);
     });
 
+
+    
+   app.get("/api/apply-trainer", async (req, res) => {
+      const {memberId} = req.query
+      const result = await applyTrainerCollection.find({memberId: memberId}).toArray();
+      res.json(result);
+    });
+
+    
     app.post("/api/apply-trainer", async (req, res) => {
       const data = req.body;
       const result = await applyTrainerCollection.insertOne(data);
@@ -114,7 +123,7 @@ async function run() {
 
     // all class
     app.get("/api/all-classes/:id", async (req, res) => {
-      // book now 
+      // book now
       const id = req.params.id;
       const query = {
         _id: new ObjectId(id),
@@ -170,8 +179,9 @@ async function run() {
       res.json(result);
     });
 
-    // Add comment
+    
     app.post("/api/community-forum/:id/comment", async (req, res) => {
+      // Add comment
       const { id } = req.params;
       const comment = { ...req.body, createdAt: new Date() };
       await communityCollection.updateOne(
