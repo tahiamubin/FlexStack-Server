@@ -66,7 +66,59 @@ async function run() {
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
 
+    // manage users by admin
+
+    app.patch("/api/manage-user/:id", async (req, res) => {
+      const { id } = req.params;
+      const updatedData = req.body;
+      const result = await userCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: updatedData },
+      );
+      res.json(result);
+    });
+
+    // trainer application
+    app.patch("/apply-trainer/:postId", async (req, res) => {
+      const { status } = req.body;
+      const { postId } = req.params;
+
+      const application = await applyTrainerCollection.findOne({
+        _id: new ObjectId(postId),
+      });
+
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+
+      await applyTrainerCollection.updateOne(
+        { _id: new ObjectId(postId) },
+        { $set: { status } },
+      );
+
+      if (status === "approved") {
+        await userCollection.updateOne(
+          { _id: new ObjectId(application.userId) },
+          { $set: { role: "trainer" } },
+        );
+      }
+
+      res.json({ message: `Application ${status}` });
+    });
+
+    // all user
+
+    app.get("/api/alluser", async (req, res) => {
+      const result = await userCollection.find().toArray();
+      return res.json(result);
+    });
+
     // member payment
+
+    app.get("/api/payment", async (req, res) => {
+      const result = await paymentCollection.find().toArray();
+      return res.json(result);
+    });
 
     app.get("/api/payment/:id", async (req, res) => {
       const id = req.params.id;
@@ -76,8 +128,15 @@ async function run() {
     });
 
     app.post("/api/payment", async (req, res) => {
-      const { sessionId, userId, className, classId, schedule, userEmail } =
-        req.body;
+      const {
+        sessionId,
+        userId,
+        className,
+        classId,
+        schedule,
+        userEmail,
+        price,
+      } = req.body;
       const isExits = await paymentCollection.findOne({ sessionId });
       if (isExits) {
         return res.json({ msg: "Already exits!" });
@@ -90,6 +149,7 @@ async function run() {
         schedule,
         userEmail,
         classId,
+        price,
       });
       await userCollection.updateOne(
         { _id: new ObjectId(userId) },
@@ -100,21 +160,32 @@ async function run() {
 
     // member page
 
-   app.get("/api/favorite", async (req, res) => {
-      const {memberId} = req.query
-      const result = await favoriteCollection.find({memberId: memberId}).toArray();
+    app.get("/api/favorite", async (req, res) => {
+      const { memberId } = req.query;
+      const result = await favoriteCollection
+        .find({ memberId: memberId })
+        .toArray();
+      res.json(result);
+    });
+    
+    app.post("/api/favorite", async (req, res) => {
+      try {
+        const data = req.body;
+        const result = await favoriteCollection.insertOne(data);
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    app.get("/api/apply-trainer", async (req, res) => {
+      const { memberId } = req.query;
+      const result = await applyTrainerCollection
+        .find({ memberId: memberId })
+        .toArray();
       res.json(result);
     });
 
-
-    
-   app.get("/api/apply-trainer", async (req, res) => {
-      const {memberId} = req.query
-      const result = await applyTrainerCollection.find({memberId: memberId}).toArray();
-      res.json(result);
-    });
-
-    
     app.post("/api/apply-trainer", async (req, res) => {
       const data = req.body;
       const result = await applyTrainerCollection.insertOne(data);
@@ -122,6 +193,15 @@ async function run() {
     });
 
     // all class
+    app.get("/api/classes-latest", async (req, res) => {
+      // latest post
+      const result = await allClassCollection
+        .find()
+        .sort({ createdAt: -1 })
+        .limit(3)
+        .toArray();
+      return res.json(result);
+    });
     app.get("/api/all-classes/:id", async (req, res) => {
       // book now
       const id = req.params.id;
@@ -179,7 +259,6 @@ async function run() {
       res.json(result);
     });
 
-    
     app.post("/api/community-forum/:id/comment", async (req, res) => {
       // Add comment
       const { id } = req.params;
@@ -201,7 +280,7 @@ async function run() {
       res.json(result);
     });
 
-    app.get("/api/community-forum", async (req, res) => {
+    app.get("/api/community-latest", async (req, res) => {
       // latest post
       const result = await communityCollection
         .find()
