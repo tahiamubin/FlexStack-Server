@@ -1,4 +1,5 @@
 const dotenv = require("dotenv");
+
 dotenv.config();
 const express = require("express");
 const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
@@ -7,6 +8,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = process.env.MONGODB_URI;
 
 const app = express();
+
 app.use(express.json());
 const port = process.env.PORT;
 const client = new MongoClient(uri, {
@@ -68,7 +70,7 @@ const verifyMember = async (req, res, next) => {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     const database = client.db("assignment10");
     const communityCollection = database.collection("community");
     const allClassCollection = database.collection("allClass");
@@ -77,7 +79,7 @@ async function run() {
     const paymentCollection = database.collection("subscription");
     const userCollection = database.collection("user");
 
-    await client.db("admin").command({ ping: 1 });
+    //await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
@@ -136,19 +138,19 @@ async function run() {
 
     // member payment
 
-    app.get("/api/payment", verifyToken,  async (req, res) => {
+    app.get("/api/payment", verifyToken, async (req, res) => {
       const result = await paymentCollection.find().toArray();
       return res.json(result);
     });
 
     app.get("/api/payment/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
-      const query = { _id: new ObjectId(id)  };
+      const query = { _id: new ObjectId(id) };
       const result = await paymentCollection.findOne(query);
       res.json(result);
     });
 
-    app.post("/api/payment",  async (req, res) => {
+    app.post("/api/payment", async (req, res) => {
       try {
         const {
           sessionId,
@@ -160,7 +162,6 @@ async function run() {
           price,
         } = req.body;
 
-       
         const user = await userCollection.findOne({ _id: userId });
         console.log("USER:", user);
 
@@ -168,7 +169,6 @@ async function run() {
           return res.status(403).json({ error: "Your account is blocked." });
         }
 
-       
         const isExists = await paymentCollection.findOne({ sessionId });
         console.log("ALREADY EXISTS:", isExists);
 
@@ -186,7 +186,6 @@ async function run() {
           price,
         });
 
-       
         await userCollection.updateOne(
           { _id: userId },
           { $set: { plan: "pro" } },
@@ -195,7 +194,7 @@ async function run() {
         res.json({ msg: "Payment successful!" });
       } catch (err) {
         console.error("ERROR:", err.message);
-        res.status(500).json({ error: err.message }); 
+        res.status(500).json({ error: err.message });
       }
     });
     // member page
@@ -283,7 +282,18 @@ async function run() {
     });
 
     app.get("/api/all-class", async (req, res) => {
-      const result = await allClassCollection.find().toArray();
+      const { search } = req.query;
+      const query = {};
+      if (search && search !== 'undefined') {
+        // query = {className: {$regex: search , $options: 'i'}}
+        query.$or = [
+          { className: { $regex: search, $options: "i" } },
+          {
+            description: { $regex: search, $options: "i" },
+          },
+        ];
+      }
+      const result = await allClassCollection.find(query).toArray();
       return res.json(result);
     });
 
@@ -352,11 +362,11 @@ async function run() {
         const result = await communityCollection.insertOne(data);
         res.json(result);
       } catch (error) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: error.message });
       }
     });
 
-    await client.db("admin").command({ ping: 1 });
+    //await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
