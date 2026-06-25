@@ -84,27 +84,7 @@ async function run() {
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
 
-        // app.get("/all-pet", async (req, res) => {
-    //   const { email, search, species, gender } = req.query;
 
-    //   const query = {};
-
-    //   if (email) query.email = email;
-
-    //   if (search) {
-    //     query.$or = [
-    //       { petName: { $regex: search, $options: "i" } },
-    //       { breed: { $regex: search, $options: "i" } },
-    //       { location: { $regex: search, $options: "i" } },
-    //     ];
-    //   }
-
-    //   if (species) query.species = { $regex: species, $options: "i" };
-    //   if (gender) query.gender = { $regex: gender, $options: "i" };
-
-    //   const result = await allpetCollection.find(query).toArray();
-    //   res.json(result);
-    // });
 
     // manage users by admin
 
