@@ -78,13 +78,12 @@ async function run() {
     const favoriteCollection = database.collection("memberFavorite");
     const paymentCollection = database.collection("subscription");
     const userCollection = database.collection("user");
+    //const forumCollection = database.collection("forum");
 
     //await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
-
-
 
     // manage users by admin
 
@@ -258,20 +257,15 @@ async function run() {
       res.json(result);
     });
 
-    app.patch(
-      "/api/all-class/:id",
-      verifyToken,
-      verifyTrainer,
-      async (req, res) => {
-        const { id } = req.params;
-        const updatedData = req.body;
-        const result = await allClassCollection.updateOne(
-          { _id: new ObjectId(id) },
-          { $set: updatedData },
-        );
-        res.json(result);
-      },
-    );
+    app.patch("/api/all-class/:id", verifyToken, async (req, res) => {
+      const { id } = req.params;
+      const updatedData = req.body;
+      const result = await allClassCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: updatedData },
+      );
+      res.json(result);
+    });
 
     app.delete("/api/all-class/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
@@ -286,7 +280,7 @@ async function run() {
     app.get("/api/all-class", async (req, res) => {
       const { search } = req.query;
       const query = {};
-      if (search && search !== 'undefined') {
+      if (search && search !== "undefined") {
         // query = {className: {$regex: search , $options: 'i'}}
         query.$or = [
           { className: { $regex: search, $options: "i" } },
@@ -353,9 +347,18 @@ async function run() {
     });
 
     app.get("/api/community-forum", async (req, res) => {
-      // community page
-      const result = await communityCollection.find().toArray();
-      return res.json(result);
+      const { page = 1, limit = 9 } = req.query;
+      const skip = (Number(page) - 1) * Number(limit);
+
+      const result = await communityCollection
+        .find()
+        .skip(skip)
+        .limit(Number(limit))
+        .toArray();
+      const totalData = await communityCollection.countDocuments();
+      const totalPage = Math.ceil(totalData / Number(limit));
+
+      return res.json({ data: result, page: Number(page), totalPage });
     });
 
     app.post("/api/community-forum", verifyToken, async (req, res) => {
