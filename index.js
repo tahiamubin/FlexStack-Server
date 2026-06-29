@@ -144,10 +144,19 @@ async function run() {
       return res.json(result);
     });
 
-    app.get("/api/payment/:id", verifyToken, async (req, res) => {
+     app.get("/api/payment-class/:id", verifyToken, async (req, res) => { // member booking page
       const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
+      //console.log(id)
+      const query = { _id: new ObjectId(id)  };
       const result = await paymentCollection.findOne(query);
+      res.json(result);
+    });
+
+    app.get("/api/payment/:id", verifyToken, async (req, res) => {  // overview booking number
+      const id = req.params.id;
+      //console.log(id)
+      const query = { userId: id };
+      const result = await paymentCollection.find(query).toArray();
       res.json(result);
     });
 
@@ -163,18 +172,22 @@ async function run() {
           price,
         } = req.body;
 
-        const user = await userCollection.findOne({ _id: userId });
-        console.log("USER:", user);
+        const user = await userCollection.findOne({
+          _id: new ObjectId(userId),
+        });
+        //console.log("USER:", user);
 
         if (user?.isBlocked) {
           return res.status(403).json({ error: "Your account is blocked." });
         }
 
-        const isExists = await paymentCollection.findOne({ sessionId });
-        console.log("ALREADY EXISTS:", isExists);
-
-        if (isExists) {
-          return res.json({ msg: "Already exists!" });
+        const alreadyBooked = await paymentCollection.findOne({
+          userId,
+          classId,
+        });
+        if (alreadyBooked) {
+          console.log("already booked", alreadyBooked);
+          return res.status(403).json({ error: "Already Booked." });
         }
 
         await paymentCollection.insertOne({
@@ -198,7 +211,21 @@ async function run() {
         res.status(500).json({ error: err.message });
       }
     });
+
     // member page
+
+    app.delete(
+      "/api/favorite/:id",
+      verifyToken,
+      verifyMember,
+      async (req, res) => {
+        const { id } = await req.params;
+        const result = await favoriteCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        res.json(result);
+      },
+    );
 
     app.get("/api/favorite", async (req, res) => {
       const { memberId } = req.query;
@@ -208,7 +235,7 @@ async function run() {
       res.json(result);
     });
 
-    app.post("/api/favorite", verifyToken, verifyMember, async (req, res) => {
+    app.post("/api/favorite", verifyToken, async (req, res) => {
       try {
         const data = req.body;
         const result = await favoriteCollection.insertOne(data);
@@ -231,13 +258,37 @@ async function run() {
       verifyToken,
 
       async (req, res) => {
-        const data = req.body;
-        const result = await applyTrainerCollection.insertOne(data);
+        const {
+          userId,
+          userEmail,
+          userName,
+          experience,
+          specialty,
+          bio,
+          status,
+        } = req.body;
+        const user = await userCollection.findOne({
+          _id: new ObjectId(userId),
+        });
+        if (user?.isBlocked) {
+          return res.status(403).json({ error: "Your account is blocked." });
+        }
+        const result = await applyTrainerCollection.insertOne({
+          userId,
+          userEmail,
+          userName,
+          experience,
+          specialty,
+          bio,
+          status,
+          appliedAt: new Date(),
+        });
         res.json(result);
       },
     );
 
     // all class
+
     app.get("/api/classes-latest", async (req, res) => {
       // latest post
       const result = await allClassCollection
@@ -269,11 +320,11 @@ async function run() {
 
     app.delete("/api/all-class/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
-      console.log("Received id:", id);
+
       const result = await allClassCollection.deleteOne({
         _id: new ObjectId(id),
       });
-      console.log("Delete result:", result);
+
       res.json(result);
     });
 
