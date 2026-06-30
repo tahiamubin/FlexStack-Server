@@ -137,6 +137,20 @@ async function run() {
       return res.json(result);
     });
 
+    // total enrollment of a trainer's  classes
+    app.get("/trainer/:trainerId/total-enrollment", async (req, res) => {
+      try{
+
+        const trainerClasses = await allClassCollection.find({userId: req.params.trainerId}).toArray()
+        const classIds =  trainerClasses.map((c) => c._id.toString())
+        const totalEnrolled = await paymentCollection.countDocuments({classId: {$in: classIds}},)
+        res.json({totalEnrolled})
+
+      }catch(error){
+        res.status(500).json({error: error.message})
+      }
+    });
+
     // member payment
 
     app.get("/api/payment", verifyToken, async (req, res) => {
@@ -144,15 +158,17 @@ async function run() {
       return res.json(result);
     });
 
-     app.get("/api/payment-class/:id", verifyToken, async (req, res) => { // member booking page
+    app.get("/api/payment-class/:id", verifyToken, async (req, res) => {
+      // member booking page
       const id = req.params.id;
       //console.log(id)
-      const query = { _id: new ObjectId(id)  };
+      const query = { _id: new ObjectId(id) };
       const result = await paymentCollection.findOne(query);
       res.json(result);
     });
 
-    app.get("/api/payment/:id", verifyToken, async (req, res) => {  // overview booking number
+    app.get("/api/payment/:id", verifyToken, async (req, res) => {
+      // overview booking number
       const id = req.params.id;
       //console.log(id)
       const query = { userId: id };
