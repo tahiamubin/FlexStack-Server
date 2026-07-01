@@ -78,6 +78,7 @@ async function run() {
     const favoriteCollection = database.collection("memberFavorite");
     const paymentCollection = database.collection("subscription");
     const userCollection = database.collection("user");
+    const communityCommentCollection = database.collection("comment");
     //const forumCollection = database.collection("forum");
 
     //await client.db("admin").command({ ping: 1 });
@@ -139,15 +140,17 @@ async function run() {
 
     // total enrollment of a trainer's  classes
     app.get("/trainer/:trainerId/total-enrollment", async (req, res) => {
-      try{
-
-        const trainerClasses = await allClassCollection.find({userId: req.params.trainerId}).toArray()
-        const classIds =  trainerClasses.map((c) => c._id.toString())
-        const totalEnrolled = await paymentCollection.countDocuments({classId: {$in: classIds}},)
-        res.json({totalEnrolled})
-
-      }catch(error){
-        res.status(500).json({error: error.message})
+      try {
+        const trainerClasses = await allClassCollection
+          .find({ userId: req.params.trainerId })
+          .toArray();
+        const classIds = trainerClasses.map((c) => c._id.toString());
+        const totalEnrolled = await paymentCollection.countDocuments({
+          classId: { $in: classIds },
+        });
+        res.json({ totalEnrolled });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
       }
     });
 
@@ -382,15 +385,32 @@ async function run() {
       res.json(result);
     });
 
-    app.post("/api/community-forum/:id/comment", async (req, res) => {
-      // Add comment
-      const { id } = req.params;
-      const comment = { ...req.body, createdAt: new Date() };
-      await communityCollection.updateOne(
-        { _id: new ObjectId(id) },
-        { $push: { comments: comment } },
-      );
-      res.json({ success: true });
+    // Add comment
+
+    
+
+    app.post("/api/community-forum/:postId/comment", async (req, res) => {
+      const { postId } = req.params;
+      const { text, userId, name } = req.body;
+
+      const comment = {
+        postId: new ObjectId(postId),
+        userId,
+        name,
+        text,
+        createdAt: new Date(),
+      };
+      const result = await communityCommentCollection.insertOne(comment);
+      res.json(result);
+    });
+
+    app.get("/api/community-forum/:postId/comment", async (req, res) => {
+      const postId = req.params.postId;
+      const query = {
+        postId: new ObjectId(postId)
+      }
+      const result = await communityCommentCollection.find(query).toArray();
+      res.json(result);
     });
 
     app.get("/api/community-forum/:id", verifyToken, async (req, res) => {
